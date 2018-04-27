@@ -97,6 +97,11 @@
     <string name="ContactsDatabase_message_s">Message %s</string>
     <string name="ContactsDatabase_signal_call_s">Signal Call %s</string>
 
+    <!-- ContactShareEditFragment -->
+    <string name="ContactShareEditFragment_type_home">Home</string>
+    <string name="ContactShareEditFragment_type_mobile">Mobile</string>
+    <string name="ContactShareEditFragment_type_work">Work</string>
+
     <!-- ConversationItem -->
     <string name="ConversationItem_error_not_delivered">Not delivered</string>
     <string name="ConversationItem_received_key_exchange_message_tap_to_process">Received key exchange message, tap to process.</string>

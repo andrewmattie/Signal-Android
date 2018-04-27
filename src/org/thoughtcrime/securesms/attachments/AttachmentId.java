@@ -1,8 +1,11 @@
 package org.thoughtcrime.securesms.attachments;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import org.thoughtcrime.securesms.util.Util;
 
-public class AttachmentId {
+public class AttachmentId implements Parcelable {
 
   private final long rowId;
   private final long uniqueId;
@@ -10,6 +13,10 @@ public class AttachmentId {
   public AttachmentId(long rowId, long uniqueId) {
     this.rowId    = rowId;
     this.uniqueId = uniqueId;
+  }
+
+  protected AttachmentId(Parcel in) {
+    this(in.readLong(), in.readLong());
   }
 
   public long getRowId() {
@@ -47,4 +54,27 @@ public class AttachmentId {
   public int hashCode() {
     return Util.hashCode(rowId, uniqueId);
   }
+
+  @Override
+  public int describeContents() {
+    return 0;
+  }
+
+  @Override
+  public void writeToParcel(Parcel dest, int flags) {
+    dest.writeLong(rowId);
+    dest.writeLong(uniqueId);
+  }
+
+  public static final Creator<AttachmentId> CREATOR = new Creator<AttachmentId>() {
+    @Override
+    public AttachmentId createFromParcel(Parcel in) {
+      return new AttachmentId(in);
+    }
+
+    @Override
+    public AttachmentId[] newArray(int size) {
+      return new AttachmentId[size];
+    }
+  };
 }

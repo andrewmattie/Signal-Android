@@ -96,6 +96,8 @@ import org.thoughtcrime.securesms.components.reminder.ReminderView;
 import org.thoughtcrime.securesms.components.reminder.UnauthorizedReminder;
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactAccessor.ContactData;
+import org.thoughtcrime.securesms.contactshare.ContactShareEditActivity;
+import org.thoughtcrime.securesms.contactshare.model.Contact;
 import org.thoughtcrime.securesms.crypto.IdentityKeyParcelable;
 import org.thoughtcrime.securesms.crypto.SecurityEvent;
 import org.thoughtcrime.securesms.database.Address;
@@ -420,7 +422,9 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       setMedia(data.getData(), MediaType.AUDIO);
       break;
     case PICK_CONTACT_INFO:
-      addAttachmentContactInfo(data.getData());
+      // TODO: Must still handle old behavior for SMS
+//      addAttachmentContactInfo(data.getData());
+      addAttachmentContactInfo(data.getParcelableArrayListExtra(ContactShareEditActivity.KEY_CONTACTS));
       break;
     case GROUP_EDIT:
       recipient = Recipient.from(this, data.getParcelableExtra(GroupCreateActivity.GROUP_ADDRESS_EXTRA), true);
@@ -1403,6 +1407,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
     if      (contactData.numbers.size() == 1) composeText.append(contactData.numbers.get(0).number);
     else if (contactData.numbers.size() > 1)  selectContactInfo(contactData);
+  }
+
+  private void addAttachmentContactInfo(List<Contact> contacts) {
+    Log.e("SPIDERMAN", "Got contacts: " + contacts);
+    Log.e("SPIDERMAN", "Got contacts: " + contacts);
   }
 
   private void selectContactInfo(ContactData contactData) {

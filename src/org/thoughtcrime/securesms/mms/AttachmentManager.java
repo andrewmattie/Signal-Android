@@ -27,7 +27,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
@@ -51,6 +50,8 @@ import org.thoughtcrime.securesms.components.RemovableEditableMediaView;
 import org.thoughtcrime.securesms.components.ThumbnailView;
 import org.thoughtcrime.securesms.components.location.SignalMapView;
 import org.thoughtcrime.securesms.components.location.SignalPlace;
+import org.thoughtcrime.securesms.contactshare.ContactShareEditActivity;
+import org.thoughtcrime.securesms.contactshare.ContactShareSelectActivity;
 import org.thoughtcrime.securesms.giph.ui.GiphyActivity;
 import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
@@ -372,7 +373,10 @@ public class AttachmentManager {
                .ifNecessary()
                .withPermanentDenialDialog(activity.getString(R.string.AttachmentManager_signal_requires_contacts_permission_in_order_to_attach_contact_information))
                .onAllGranted(() -> {
-                 Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+//                 Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+//                 activity.startActivityForResult(intent, requestCode);
+                 // TODO: We can only use new flow if they are sending to a signal user
+                 Intent intent = new Intent(activity, ContactShareSelectActivity.class);
                  activity.startActivityForResult(intent, requestCode);
                })
                .execute();
@@ -508,6 +512,7 @@ public class AttachmentManager {
   }
 
   public enum MediaType {
+    // TODO: Contact?
     IMAGE, GIF, AUDIO, VIDEO, DOCUMENT;
 
     public @NonNull Slide createSlide(@NonNull  Context context,

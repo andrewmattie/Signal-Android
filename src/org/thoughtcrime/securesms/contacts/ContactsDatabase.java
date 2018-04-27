@@ -19,6 +19,7 @@ package org.thoughtcrime.securesms.contacts;
 import android.accounts.Account;
 import android.annotation.SuppressLint;
 import android.content.ContentProviderOperation;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
@@ -225,6 +226,88 @@ public class ContactsDatabase {
                                        new Pair<>(CONTACT_TYPE_COLUMN, PUSH_TYPE));
 
   }
+
+  public @Nullable long getContactIdFromAddress(@NonNull Address address) {
+    Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address.serialize()));
+    try (Cursor cursor = context.getContentResolver().query(uri, new String[] { ContactsContract.Data.CONTACT_ID}, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        return cursor.getLong(0);
+      }
+    }
+    return -1;
+  }
+
+  public @Nullable Cursor getNameDetails(long contactId) {
+    String[] projection = new String[] { ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME,
+                                         ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,
+                                         ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME,
+                                         ContactsContract.CommonDataKinds.StructuredName.PREFIX,
+                                         ContactsContract.CommonDataKinds.StructuredName.SUFFIX,
+                                         ContactsContract.CommonDataKinds.StructuredName.MIDDLE_NAME };
+    String   selection  = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE };
+
+    return context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                              projection,
+                                              selection,
+                                              args,
+                                              null);
+  }
+
+  public @Nullable Cursor getPhoneDetails(long contactId) {
+    String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER,
+                                         ContactsContract.CommonDataKinds.Phone.TYPE,
+                                         ContactsContract.CommonDataKinds.Phone.LABEL };
+    String   selection  = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId), ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE };
+
+    return context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+        projection,
+        selection,
+        args,
+        null);
+  }
+
+  public @Nullable Cursor getEmailDetails(long contactId) {
+    String[] projection = new String[] { ContactsContract.CommonDataKinds.Email.ADDRESS,
+                                         ContactsContract.CommonDataKinds.Email.TYPE,
+                                         ContactsContract.CommonDataKinds.Email.LABEL };
+    String   selection  = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId), ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE };
+
+    return context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                              projection,
+                                              selection,
+                                              args,
+                                              null);
+  }
+
+  public @Nullable Cursor getPostalAddressDetails(long contactId) {
+    String[] projection = new String[] { ContactsContract.CommonDataKinds.StructuredPostal.TYPE,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.LABEL,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.STREET,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.POBOX,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.NEIGHBORHOOD,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.CITY,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.REGION,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.POSTCODE,
+                                         ContactsContract.CommonDataKinds.StructuredPostal.COUNTRY };
+    String   selection  = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId), ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE };
+
+    return context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                              projection,
+                                              selection,
+                                              args,
+                                              null);
+  }
+
+  public @NonNull Uri getAvatarUri(long contactId) {
+    Uri contactUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
+    return Uri.withAppendedPath(contactUri, ContactsContract.Contacts.Photo.DISPLAY_PHOTO);
+  }
+
+
 
   private void addContactVoiceSupport(List<ContentProviderOperation> operations,
                                       @NonNull Address address, long rawContactId)
