@@ -5,7 +5,11 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-public class Email implements Selectable, Parcelable {
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.thoughtcrime.securesms.util.JsonUtils;
+
+public class Email implements Selectable, Parcelable, Json {
 
   private final String email;
   private final Type   type;
@@ -44,6 +48,22 @@ public class Email implements Selectable, Parcelable {
   @Override
   public boolean isSelected() {
     return selected;
+  }
+
+  @Override
+  public JSONObject toJson() throws JSONException {
+    JSONObject object = new JSONObject();
+    object.put("email", email);
+    object.put("type", type.name());
+    object.put("label", label);
+    return object;
+  }
+
+  public static Email fromJson(@NonNull JSONObject original) throws JSONException {
+    JsonUtils.SaneJSONObject object = new JsonUtils.SaneJSONObject(original);
+    return new Email(object.getString("email"),
+                     Type.valueOf(object.getString("type")),
+                     object.getString("label"));
   }
 
   @Override

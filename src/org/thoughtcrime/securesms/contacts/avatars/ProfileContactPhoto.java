@@ -28,6 +28,11 @@ public class ProfileContactPhoto implements ContactPhoto {
   }
 
   @Override
+  public boolean isProfilePhoto() {
+    return true;
+  }
+
+  @Override
   public void updateDiskCacheKey(MessageDigest messageDigest) {
     messageDigest.update(address.serialize().getBytes());
     messageDigest.update(avatarObject.getBytes());

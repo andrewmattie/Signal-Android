@@ -2,9 +2,14 @@ package org.thoughtcrime.securesms.contactshare.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-public class Name implements Parcelable {
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.thoughtcrime.securesms.util.JsonUtils;
+
+public class Name implements Parcelable, Json {
 
   private final String displayName;
   private final String givenName;
@@ -54,6 +59,28 @@ public class Name implements Parcelable {
 
   public @Nullable String getMiddleName() {
     return middleName;
+  }
+
+  @Override
+  public JSONObject toJson() throws JSONException {
+    JSONObject object = new JSONObject();
+    object.put("displayName", displayName);
+    object.put("givenName", givenName);
+    object.put("familyName", familyName);
+    object.put("prefix", prefix);
+    object.put("suffix", suffix);
+    object.put("middleName", middleName);
+    return object;
+  }
+
+  public static Name fromJson(@NonNull JSONObject original) throws JSONException {
+    JsonUtils.SaneJSONObject object = new JsonUtils.SaneJSONObject(original);
+    return new Name(object.getString("displayName"),
+                    object.getString("givenName"),
+                    object.getString("familyName"),
+                    object.getString("prefix"),
+                    object.getString("suffix"),
+                    object.getString("middleName"));
   }
 
   @Override

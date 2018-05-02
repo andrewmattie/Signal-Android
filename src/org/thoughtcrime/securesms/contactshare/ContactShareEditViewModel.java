@@ -41,7 +41,7 @@ class ContactShareEditViewModel extends ViewModel {
                                   trimSelectables(contact.getPhoneNumbers()),
                                   trimSelectables(contact.getEmails()),
                                   trimSelectables(contact.getPostalAddresses()),
-                                  contact.getAvatarAddress()));
+                                  contact.getAvatar()));
     }
 
     return newContacts;

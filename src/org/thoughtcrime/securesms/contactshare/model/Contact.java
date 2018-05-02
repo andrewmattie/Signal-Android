@@ -5,30 +5,36 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.database.Address;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Contact implements Parcelable {
 
   private final Name                name;
+  // TODO: String for organization
   private final List<Phone>         phoneNumbers;
   private final List<Email>         emails;
   private final List<PostalAddress> postalAddresses;
-  private final Address             avatarAddress;
+  private final ContactAvatar avatar;
 
   public Contact(@NonNull  Name                name,
                  @NonNull  List<Phone>         phoneNumbers,
                  @NonNull  List<Email>         emails,
                  @NonNull  List<PostalAddress> postalAddresses,
-                 @NonNull  Address             avatarAddress)
+                 @Nullable ContactAvatar       avatar)
   {
     this.name            = name;
     this.phoneNumbers    = Collections.unmodifiableList(phoneNumbers);
     this.emails          = Collections.unmodifiableList(emails);
     this.postalAddresses = Collections.unmodifiableList(postalAddresses);
-    this.avatarAddress   = avatarAddress;
+    this.avatar = avatar;
   }
 
   private Contact(Parcel in) {
@@ -67,8 +73,61 @@ public class Contact implements Parcelable {
     return postalAddresses;
   }
 
-  public @NonNull Address getAvatarAddress() {
-    return avatarAddress;
+  public @Nullable ContactAvatar getAvatar() {
+    return avatar;
+  }
+
+  public String toJson() throws JSONException {
+    JSONObject object = new JSONObject();
+    object.put("name", name.toJson());
+    object.put("phoneNumbers", listToJson(phoneNumbers));
+    object.put("emails", listToJson(emails));
+    object.put("postalAddresses", listToJson(postalAddresses));
+
+    if (avatar != null) {
+      object.put("avatar", avatar.toJson());
+    }
+
+    return object.toString();
+  }
+
+  public static Contact fromJson(@NonNull String json, @Nullable Attachment avatar) throws JSONException {
+    JSONObject object = new JSONObject(json);
+
+    Name name = Name.fromJson(object.getJSONObject("name"));
+
+    JSONArray phoneNumbersJson = object.getJSONArray("phoneNumbers");
+    List<Phone> phoneNumbers = new ArrayList<>(phoneNumbersJson.length());
+    for (int i = 0; i < phoneNumbersJson.length(); i++) {
+      phoneNumbers.add(Phone.fromJson(phoneNumbersJson.getJSONObject(i)));
+    }
+
+    JSONArray emailsJson = object.getJSONArray("emails");
+    List<Email> emails = new ArrayList<>(emailsJson.length());
+    for (int i = 0; i < emailsJson.length(); i++) {
+      emails.add(Email.fromJson(emailsJson.getJSONObject(i)));
+    }
+
+    JSONArray postalAddressesJson = object.getJSONArray("postalAddresses");
+    List<PostalAddress> postalAddresses = new ArrayList<>(postalAddressesJson.length());
+    for (int i = 0; i < postalAddressesJson.length(); i++) {
+      postalAddresses.add(PostalAddress.fromJson(postalAddressesJson.getJSONObject(i)));
+    }
+
+    ContactAvatar contactAvatar = null;
+    if (avatar != null && !object.isNull("avatar")) {
+      contactAvatar = ContactAvatar.fromJson(object.getJSONObject("avatar"), avatar);
+    }
+
+    return new Contact(name, phoneNumbers, emails, postalAddresses, contactAvatar);
+  }
+
+  private JSONArray listToJson(@NonNull List<? extends Json> objects) throws JSONException {
+    JSONArray array = new JSONArray();
+    for (Json object : objects) {
+      array.put(object.toJson());
+    }
+    return array;
   }
 
   @Override
@@ -82,6 +141,6 @@ public class Contact implements Parcelable {
     dest.writeTypedList(phoneNumbers);
     dest.writeTypedList(emails);
     dest.writeTypedList(postalAddresses);
-    dest.writeParcelable(avatarAddress, flags);
+    dest.writeParcelable(avatar, flags);
   }
 }

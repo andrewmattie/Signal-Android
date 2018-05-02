@@ -172,6 +172,7 @@ import org.whispersystems.libsignal.util.guava.Optional;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -774,7 +775,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
                                            .setType(GroupContext.Type.QUIT)
                                            .build();
 
-        OutgoingGroupMediaMessage outgoingMessage = new OutgoingGroupMediaMessage(getRecipient(), context, null, System.currentTimeMillis(), 0, null);
+        OutgoingGroupMediaMessage outgoingMessage = new OutgoingGroupMediaMessage(getRecipient(), context, null, System.currentTimeMillis(), 0, null, Collections.emptyList());
         MessageSender.send(self, outgoingMessage, threadId, false, null);
         DatabaseFactory.getGroupDatabase(self).remove(groupId, Address.fromSerialized(TextSecurePreferences.getLocalNumber(self)));
         initializeEnabledCheck();
@@ -1412,6 +1413,14 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   private void addAttachmentContactInfo(List<Contact> contacts) {
     Log.e("SPIDERMAN", "Got contacts: " + contacts);
     Log.e("SPIDERMAN", "Got contacts: " + contacts);
+
+    boolean    forceSms       = sendButton.isManualSelection() && sendButton.getSelectedTransport().isSms();
+    int        subscriptionId = sendButton.getSelectedTransport().getSimSubscriptionId().or(-1);
+    long       expiresIn      = recipient.getExpireMessages() * 1000L;
+    boolean    initiating     = threadId == -1;
+
+    // TODO: Listen to result?
+    sendMediaMessage(forceSms, "", new SlideDeck(), expiresIn, subscriptionId, initiating, contacts);
   }
 
   private void selectContactInfo(ContactData contactData) {
@@ -1694,8 +1703,33 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     sendMediaMessage(forceSms, getMessage(), attachmentManager.buildSlideDeck(), expiresIn, subscriptionId, initiating);
   }
 
-  private ListenableFuture<Void> sendMediaMessage(final boolean forceSms, String body, SlideDeck slideDeck, final long expiresIn, final int subscriptionId, final boolean initiating) {
-    OutgoingMediaMessage outgoingMessageCandidate = new OutgoingMediaMessage(recipient, slideDeck, body, System.currentTimeMillis(), subscriptionId, expiresIn, distributionType, inputPanel.getQuote().orNull());
+  private ListenableFuture<Void> sendMediaMessage(boolean   forceSms,
+                                                  String    body,
+                                                  SlideDeck slideDeck,
+                                                  long      expiresIn,
+                                                  int       subscriptionId,
+                                                  boolean   initiating)
+  {
+    return sendMediaMessage(forceSms, body, slideDeck, expiresIn, subscriptionId, initiating, Collections.emptyList());
+  }
+
+  private ListenableFuture<Void> sendMediaMessage(final    boolean       forceSms,
+                                                           String        body,
+                                                           SlideDeck     slideDeck,
+                                                  final    long          expiresIn,
+                                                  final    int           subscriptionId,
+                                                  final    boolean       initiating,
+                                                  @NonNull List<Contact> contacts)
+  {
+    OutgoingMediaMessage outgoingMessageCandidate = new OutgoingMediaMessage(recipient,
+                                                                             slideDeck,
+                                                                             body,
+                                                                             System.currentTimeMillis(),
+                                                                             subscriptionId,
+                                                                             expiresIn,
+                                                                             distributionType,
+                                                                             inputPanel.getQuote().orNull(),
+                                                                             contacts);
 
     final SettableFuture<Void> future  = new SettableFuture<>();
     final Context              context = getApplicationContext();

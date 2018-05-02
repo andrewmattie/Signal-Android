@@ -6,7 +6,11 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-public class PostalAddress implements Selectable, Parcelable {
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.thoughtcrime.securesms.util.JsonUtils;
+
+public class PostalAddress implements Selectable, Parcelable, Json {
 
   private final Type   type;
   private final String label;
@@ -98,6 +102,34 @@ public class PostalAddress implements Selectable, Parcelable {
   @Override
   public boolean isSelected() {
     return selected;
+  }
+
+  @Override
+  public JSONObject toJson() throws JSONException {
+    JSONObject object = new JSONObject();
+    object.put("type", type.name());
+    object.put("label", label);
+    object.put("street", street);
+    object.put("poBox", poBox);
+    object.put("neighborhood", neighborhood);
+    object.put("city", city);
+    object.put("region", region);
+    object.put("postalCode", postalCode);
+    object.put("country", country);
+    return object;
+  }
+
+  public static PostalAddress fromJson(@NonNull JSONObject original) throws JSONException {
+    JsonUtils.SaneJSONObject object = new JsonUtils.SaneJSONObject(original);
+    return new PostalAddress(Type.valueOf(object.getString("type")),
+                             object.getString("label"),
+                             object.getString("street"),
+                             object.getString("poBox"),
+                             object.getString("neighborhood"),
+                             object.getString("city"),
+                             object.getString("region"),
+                             object.getString("postalCode"),
+                             object.getString("country"));
   }
 
   @Override

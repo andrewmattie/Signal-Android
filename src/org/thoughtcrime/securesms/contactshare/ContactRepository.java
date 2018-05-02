@@ -2,6 +2,7 @@ package org.thoughtcrime.securesms.contactshare;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -9,13 +10,19 @@ import android.support.annotation.WorkerThread;
 import android.util.Log;
 
 import org.thoughtcrime.securesms.contacts.ContactsDatabase;
+import org.thoughtcrime.securesms.contacts.avatars.ContactPhoto;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.ContactAvatar;
 import org.thoughtcrime.securesms.contactshare.model.Email;
 import org.thoughtcrime.securesms.contactshare.model.Name;
 import org.thoughtcrime.securesms.contactshare.model.Phone;
 import org.thoughtcrime.securesms.contactshare.model.PostalAddress;
 import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
+import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.util.MediaUtil;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -71,7 +78,7 @@ class ContactRepository {
                        getPhoneNumbers(contactId),
                        getEmails(contactId),
                        getPostalAddresses(contactId),
-                       address);
+                       getAvatar(address));
   }
 
   @WorkerThread
@@ -137,6 +144,22 @@ class ContactRepository {
     }
 
     return postalAddresses;
+  }
+
+  private @Nullable ContactAvatar getAvatar(@NonNull Address address) {
+    Recipient    recipient    = Recipient.from(context, address, false);
+    ContactPhoto contactPhoto = recipient.getContactPhoto();
+
+    if (contactPhoto != null) {
+      try {
+        Uri uri = PersistentBlobProvider.getInstance(context).create(context, contactPhoto.openInputStream(context), MediaUtil.IMAGE_JPEG, null, null);
+        return new ContactAvatar(uri, contactPhoto.isProfilePhoto());
+      } catch (IOException e) {
+        Log.w(TAG, "Failed to write the photo to persistent storage. Backing out.");
+        e.printStackTrace();
+      }
+    }
+    return null;
   }
 
   private Phone.Type phoneTypeFromContactType(int type) {

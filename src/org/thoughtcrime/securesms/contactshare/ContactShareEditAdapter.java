@@ -13,8 +13,6 @@ import android.widget.TextView;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.components.AvatarImageView;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
-import org.thoughtcrime.securesms.contactshare.model.Phone;
-import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.mms.GlideRequests;
 import org.thoughtcrime.securesms.recipients.Recipient;
 
@@ -76,9 +74,11 @@ public class ContactShareEditAdapter extends RecyclerView.Adapter<ContactShareEd
 
     void bind(@NonNull Contact contact, @NonNull GlideRequests glideRequests) {
       Context   context   = itemView.getContext();
-      Recipient recipient = Recipient.from(context, contact.getAvatarAddress(), true);
-
-      avatar.setAvatar(glideRequests, recipient, false);
+//      Recipient recipient = Recipient.from(context, contact.getAvatar(), true);
+      if (contact.getAvatar() != null) {
+        // TODO: Set image
+//        avatar.setAvatar(glideRequests, recipient, false);
+      }
       name.setText(NameRenderer.getDisplayString(contact.getName()));
       fieldAdapter.setFields(context, contact.getPhoneNumbers(), contact.getEmails(), contact.getPostalAddresses());
     }

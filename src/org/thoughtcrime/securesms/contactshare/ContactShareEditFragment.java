@@ -1,7 +1,9 @@
 package org.thoughtcrime.securesms.contactshare;
 
+import android.annotation.SuppressLint;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -17,6 +19,7 @@ import org.thoughtcrime.securesms.contactshare.model.Contact;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,8 @@ public class ContactShareEditFragment extends Fragment {
   private ContactShareEditAdapter   contactAdapter;
   private View                      sendButton;
   private EventListener             eventListener;
+
+  private boolean                   photosUsed;
 
   static ContactShareEditFragment newInstance(@NonNull ArrayList<Address> contactIds) {
     Bundle args = new Bundle();
@@ -102,7 +107,30 @@ public class ContactShareEditFragment extends Fragment {
 
     viewModel.getContacts().observe(this, contactAdapter::setContacts);
 
-    sendButton.setOnClickListener(view -> eventListener.onSendClicked(viewModel.getTrimmedContacts()));
+    sendButton.setOnClickListener(view -> {
+      photosUsed = true;
+      eventListener.onSendClicked(viewModel.getTrimmedContacts());
+    });
+  }
+
+  @SuppressLint("StaticFieldLeak")
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+    Context context = getContext();
+    if (!photosUsed && context != null && viewModel != null && viewModel.getContacts().getValue() != null) {
+      new AsyncTask<Void, Void, Void>() {
+        @Override
+        protected Void doInBackground(Void... voids) {
+          for (Contact contact : viewModel.getContacts().getValue()) {
+            if (contact.getAvatar() != null && contact.getAvatar().getImage().getDataUri() != null) {
+              PersistentBlobProvider.getInstance(getContext()).delete(context, contact.getAvatar().getImage().getDataUri());
+            }
+          }
+          return null;
+        }
+      }.execute();
+    }
   }
 
   interface EventListener {

@@ -93,6 +93,7 @@ import org.whispersystems.signalservice.api.messages.multidevice.VerifiedMessage
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 
 import java.security.MessageDigest;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -587,7 +588,7 @@ public class PushDecryptJob extends ContextJob {
                                                                   PointerAttachment.forPointers(message.getMessage().getAttachments()),
                                                                   message.getTimestamp(), -1,
                                                                   message.getMessage().getExpiresInSeconds() * 1000,
-                                                                  ThreadDatabase.DistributionTypes.DEFAULT, quote.orNull());
+                                                                  ThreadDatabase.DistributionTypes.DEFAULT, quote.orNull(), Collections.emptyList());
 
     mediaMessage = new OutgoingSecureMediaMessage(mediaMessage);
 
@@ -674,7 +675,7 @@ public class PushDecryptJob extends ContextJob {
     long              messageId;
 
     if (recipient.getAddress().isGroup()) {
-      OutgoingMediaMessage outgoingMediaMessage = new OutgoingMediaMessage(recipient, new SlideDeck(), body, message.getTimestamp(), -1, expiresInMillis, ThreadDatabase.DistributionTypes.DEFAULT, null);
+      OutgoingMediaMessage outgoingMediaMessage = new OutgoingMediaMessage(recipient, new SlideDeck(), body, message.getTimestamp(), -1, expiresInMillis, ThreadDatabase.DistributionTypes.DEFAULT, null, Collections.emptyList());
       outgoingMediaMessage = new OutgoingSecureMediaMessage(outgoingMediaMessage);
 
       messageId = DatabaseFactory.getMmsDatabase(context).insertMessageOutbox(outgoingMediaMessage, threadId, false, null);

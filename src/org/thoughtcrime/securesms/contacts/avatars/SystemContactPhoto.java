@@ -31,6 +31,11 @@ public class SystemContactPhoto implements ContactPhoto {
   }
 
   @Override
+  public boolean isProfilePhoto() {
+    return false;
+  }
+
+  @Override
   public void updateDiskCacheKey(MessageDigest messageDigest) {
     messageDigest.update(address.serialize().getBytes());
     messageDigest.update(contactPhotoUri.toString().getBytes());

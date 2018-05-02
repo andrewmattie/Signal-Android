@@ -13,4 +13,6 @@ public interface ContactPhoto extends Key {
 
   InputStream openInputStream(Context context) throws IOException;
 
+  boolean isProfilePhoto();
+
 }
