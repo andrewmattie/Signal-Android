@@ -182,20 +182,20 @@ public abstract class PushSendJob extends SendJob {
 
       for (Phone phone : contact.getPhoneNumbers()) {
         phoneNumbers.add(new SharedContact.Phone.Builder().setValue(phone.getNumber())
-                                                          .setType(localToRemotePhoneType(phone.getType()))
+                                                          .setType(localToRemoteType(phone.getType()))
                                                           .setLabel(phone.getLabel())
                                                           .build());
       }
 
       for (Email email : contact.getEmails()) {
         emails.add(new SharedContact.Email.Builder().setValue(email.getEmail())
-                                                    .setType(localToRemoteEmailType(email.getType()))
+                                                    .setType(localToRemoteType(email.getType()))
                                                     .setLabel(email.getLabel())
                                                     .build());
       }
 
       for (PostalAddress postalAddress : contact.getPostalAddresses()) {
-        postalAddresses.add(new SharedContact.PostalAddress.Builder().setType(localToRemotePostalAddressType(postalAddress.getType()))
+        postalAddresses.add(new SharedContact.PostalAddress.Builder().setType(localToRemoteType(postalAddress.getType()))
                                                                      .setLabel(postalAddress.getLabel())
                                                                      .setStreet(postalAddress.getStreet())
                                                                      .setPobox(postalAddress.getPoBox())
@@ -229,45 +229,36 @@ public abstract class PushSendJob extends SendJob {
                                                     .withAddresses(postalAddresses)
                                                     .setAvatar(avatar)
                                                     .build());
+
+      // TODO: Company name
     }
 
     return Optional.of(sharedContacts);
   }
 
-  private SharedContact.Phone.Type localToRemotePhoneType(Phone.Type type) {
+  private SharedContact.Phone.Type localToRemoteType(Phone.Type type) {
     switch (type) {
-      case HOME:
-        return SharedContact.Phone.Type.HOME;
-      case MOBILE:
-        return SharedContact.Phone.Type.MOBILE;
-      case WORK:
-        return SharedContact.Phone.Type.WORK;
-      default:
-        return SharedContact.Phone.Type.CUSTOM;
+      case HOME:   return SharedContact.Phone.Type.HOME;
+      case MOBILE: return SharedContact.Phone.Type.MOBILE;
+      case WORK:   return SharedContact.Phone.Type.WORK;
+      default:     return SharedContact.Phone.Type.CUSTOM;
     }
   }
 
-  private SharedContact.Email.Type localToRemoteEmailType(Email.Type type) {
+  private SharedContact.Email.Type localToRemoteType(Email.Type type) {
     switch (type) {
-      case HOME:
-        return SharedContact.Email.Type.HOME;
-      case MOBILE:
-        return SharedContact.Email.Type.MOBILE;
-      case WORK:
-        return SharedContact.Email.Type.WORK;
-      default:
-        return SharedContact.Email.Type.CUSTOM;
+      case HOME:   return SharedContact.Email.Type.HOME;
+      case MOBILE: return SharedContact.Email.Type.MOBILE;
+      case WORK:   return SharedContact.Email.Type.WORK;
+      default:     return SharedContact.Email.Type.CUSTOM;
     }
   }
 
-  private SharedContact.PostalAddress.Type localToRemotePostalAddressType(PostalAddress.Type type) {
+  private SharedContact.PostalAddress.Type localToRemoteType(PostalAddress.Type type) {
     switch (type) {
-      case HOME:
-        return SharedContact.PostalAddress.Type.HOME;
-      case WORK:
-        return SharedContact.PostalAddress.Type.WORK;
-      default:
-        return SharedContact.PostalAddress.Type.CUSTOM;
+      case HOME: return SharedContact.PostalAddress.Type.HOME;
+      case WORK: return SharedContact.PostalAddress.Type.WORK;
+      default:   return SharedContact.PostalAddress.Type.CUSTOM;
     }
   }
 

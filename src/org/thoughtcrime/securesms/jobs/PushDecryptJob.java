@@ -3,7 +3,6 @@ package org.thoughtcrime.securesms.jobs;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
@@ -17,6 +16,12 @@ import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.attachments.DatabaseAttachment;
 import org.thoughtcrime.securesms.attachments.PointerAttachment;
+import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.ContactAvatar;
+import org.thoughtcrime.securesms.contactshare.model.Email;
+import org.thoughtcrime.securesms.contactshare.model.Name;
+import org.thoughtcrime.securesms.contactshare.model.Phone;
+import org.thoughtcrime.securesms.contactshare.model.PostalAddress;
 import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
 import org.thoughtcrime.securesms.crypto.SecurityEvent;
 import org.thoughtcrime.securesms.crypto.storage.SignalProtocolStoreImpl;
@@ -28,7 +33,6 @@ import org.thoughtcrime.securesms.database.MessagingDatabase;
 import org.thoughtcrime.securesms.database.MessagingDatabase.InsertResult;
 import org.thoughtcrime.securesms.database.MessagingDatabase.SyncMessageId;
 import org.thoughtcrime.securesms.database.MmsDatabase;
-import org.thoughtcrime.securesms.database.MmsSmsDatabase;
 import org.thoughtcrime.securesms.database.NoSuchMessageException;
 import org.thoughtcrime.securesms.database.PushDatabase;
 import org.thoughtcrime.securesms.database.RecipientDatabase;
@@ -58,7 +62,6 @@ import org.thoughtcrime.securesms.util.Base64;
 import org.thoughtcrime.securesms.util.GroupUtil;
 import org.thoughtcrime.securesms.util.IdentityUtil;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
-import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.jobqueue.JobParameters;
 import org.whispersystems.libsignal.DuplicateMessageException;
 import org.whispersystems.libsignal.IdentityKey;
@@ -90,6 +93,7 @@ import org.whispersystems.signalservice.api.messages.multidevice.RequestMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SentTranscriptMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.VerifiedMessage;
+import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 
 import java.security.MessageDigest;
@@ -406,7 +410,8 @@ public class PushDecryptJob extends ContextJob {
                                                                  message.getExpiresInSeconds() * 1000L, true,
                                                                  Optional.fromNullable(envelope.getRelay()),
                                                                  Optional.absent(), message.getGroupInfo(),
-                                                                 Optional.absent(), Optional.absent());
+                                                                 Optional.absent(), Optional.absent(),
+                                                                 Collections.emptyList());
 
 
 
@@ -523,17 +528,19 @@ public class PushDecryptJob extends ContextJob {
                                   @NonNull Optional<Long> smsMessageId)
       throws MmsException
   {
-    MmsDatabase          database     = DatabaseFactory.getMmsDatabase(context);
-    Recipient            recipient    = getMessageDestination(envelope, message);
-    Optional<QuoteModel> quote        = getValidatedQuote(message.getQuote());
-    IncomingMediaMessage mediaMessage = new IncomingMediaMessage(Address.fromExternal(context, envelope.getSource()),
-                                                                 message.getTimestamp(), -1,
-                                                                 message.getExpiresInSeconds() * 1000L, false,
-                                                                 Optional.fromNullable(envelope.getRelay()),
-                                                                 message.getBody(),
-                                                                 message.getGroupInfo(),
-                                                                 message.getAttachments(),
-                                                                 quote);
+    MmsDatabase          database       = DatabaseFactory.getMmsDatabase(context);
+    Recipient            recipient      = getMessageDestination(envelope, message);
+    Optional<QuoteModel> quote          = getValidatedQuote(message.getQuote());
+    List<Contact>        sharedContacts = getValidatedContacts(message.getSharedContacts());
+    IncomingMediaMessage mediaMessage   = new IncomingMediaMessage(Address.fromExternal(context, envelope.getSource()),
+                                                                   message.getTimestamp(), -1,
+                                                                   message.getExpiresInSeconds() * 1000L, false,
+                                                                   Optional.fromNullable(envelope.getRelay()),
+                                                                   message.getBody(),
+                                                                   message.getGroupInfo(),
+                                                                   message.getAttachments(),
+                                                                   quote,
+                                                                   sharedContacts);
 
     if (message.getExpiresInSeconds() != recipient.getExpireMessages()) {
       handleExpirationUpdate(envelope, message, Optional.absent());
@@ -886,6 +893,89 @@ public class PushDecryptJob extends ContextJob {
                                       author,
                                       quote.get().getText(),
                                       PointerAttachment.forPointers(quote.get().getAttachments())));
+  }
+
+  private List<Contact> getValidatedContacts(Optional<List<SharedContact>> sharedContacts) {
+    if (!sharedContacts.isPresent()) return Collections.emptyList();
+
+    List<Contact> contacts = new LinkedList<>();
+    for (SharedContact sharedContact : sharedContacts.get()) {
+      Name name = new Name(sharedContact.getName().getDisplay().orNull(),
+                           sharedContact.getName().getGiven().orNull(),
+                           sharedContact.getName().getFamily().orNull(),
+                           sharedContact.getName().getPrefix().orNull(),
+                           sharedContact.getName().getSuffix().orNull(),
+                           sharedContact.getName().getMiddle().orNull());
+
+      List<Phone> phoneNumbers = new LinkedList<>();
+      if (sharedContact.getPhone().isPresent()) {
+        for (SharedContact.Phone phone : sharedContact.getPhone().get()) {
+          phoneNumbers.add(new Phone(phone.getValue(),
+                                     remoteToLocalType(phone.getType()),
+                                     phone.getLabel().orNull()));
+        }
+      }
+
+      List<Email> emails = new LinkedList<>();
+      if (sharedContact.getEmail().isPresent()) {
+        for (SharedContact.Email email : sharedContact.getEmail().get()) {
+          emails.add(new Email(email.getValue(),
+                               remoteToLocalType(email.getType()),
+                               email.getLabel().orNull()));
+        }
+      }
+
+      List<PostalAddress> postalAddresses = new LinkedList<>();
+      if (sharedContact.getAddress().isPresent()) {
+        for (SharedContact.PostalAddress postalAddress : sharedContact.getAddress().get()) {
+          postalAddresses.add(new PostalAddress(remoteToLocalType(postalAddress.getType()),
+                                                postalAddress.getLabel().orNull(),
+                                                postalAddress.getStreet().orNull(),
+                                                postalAddress.getPobox().orNull(),
+                                                postalAddress.getNeighborhood().orNull(),
+                                                postalAddress.getCity().orNull(),
+                                                postalAddress.getRegion().orNull(),
+                                                postalAddress.getPostcode().orNull(),
+                                                postalAddress.getCountry().orNull()));
+        }
+      }
+
+      ContactAvatar contactAvatar = null;
+      if (sharedContact.getAvatar().isPresent()) {
+        Attachment avatarAttachment = PointerAttachment.forPointer(Optional.of(sharedContact.getAvatar().get().getAttachment())).get();
+        contactAvatar = new ContactAvatar(avatarAttachment, sharedContact.getAvatar().get().isProfile());
+      }
+
+      contacts.add(new Contact(name, phoneNumbers, emails, postalAddresses, contactAvatar));
+      // TODO: Company name
+    }
+    return contacts;
+  }
+
+  private Phone.Type remoteToLocalType(SharedContact.Phone.Type type) {
+    switch (type) {
+      case HOME:   return Phone.Type.HOME;
+      case MOBILE: return Phone.Type.MOBILE;
+      case WORK:   return Phone.Type.WORK;
+      default:     return Phone.Type.CUSTOM;
+    }
+  }
+
+  private Email.Type remoteToLocalType(SharedContact.Email.Type type) {
+    switch (type) {
+      case HOME:   return Email.Type.HOME;
+      case MOBILE: return Email.Type.MOBILE;
+      case WORK:   return Email.Type.WORK;
+      default:     return Email.Type.CUSTOM;
+    }
+  }
+
+  private PostalAddress.Type remoteToLocalType(SharedContact.PostalAddress.Type type) {
+    switch (type) {
+      case HOME:   return PostalAddress.Type.HOME;
+      case WORK:   return PostalAddress.Type.WORK;
+      default:     return PostalAddress.Type.CUSTOM;
+    }
   }
 
   private Optional<InsertResult> insertPlaceholder(@NonNull SignalServiceEnvelope envelope) {

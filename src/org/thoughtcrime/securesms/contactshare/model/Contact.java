@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Contact implements Parcelable {
+public class Contact implements Parcelable, ContactRetriever {
 
   private final Name                name;
   // TODO: String for organization
@@ -45,17 +45,11 @@ public class Contact implements Parcelable {
          in.readParcelable(Address.class.getClassLoader()));
   }
 
-  public static final Creator<Contact> CREATOR = new Creator<Contact>() {
-    @Override
-    public Contact createFromParcel(Parcel in) {
-      return new Contact(in);
-    }
-
-    @Override
-    public Contact[] newArray(int size) {
-      return new Contact[size];
-    }
-  };
+  @Nullable
+  @Override
+  public Contact getContact() {
+    return this;
+  }
 
   public @NonNull Name getName() {
     return name;
@@ -143,4 +137,17 @@ public class Contact implements Parcelable {
     dest.writeTypedList(postalAddresses);
     dest.writeParcelable(avatar, flags);
   }
+
+  public static final Creator<Contact> CREATOR = new Creator<Contact>() {
+    @Override
+    public Contact createFromParcel(Parcel in) {
+      return new Contact(in);
+    }
+
+    @Override
+    public Contact[] newArray(int size) {
+      return new Contact[size];
+    }
+  };
+
 }

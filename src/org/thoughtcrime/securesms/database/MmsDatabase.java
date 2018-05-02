@@ -38,7 +38,9 @@ import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.attachments.DatabaseAttachment;
 import org.thoughtcrime.securesms.attachments.MmsNotificationAttachment;
 import org.thoughtcrime.securesms.attachments.UriAttachment;
+import org.thoughtcrime.securesms.contactshare.model.AttachmentContactRetriever;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.database.documents.IdentityKeyMismatch;
 import org.thoughtcrime.securesms.database.documents.IdentityKeyMismatchList;
 import org.thoughtcrime.securesms.database.documents.NetworkFailure;
@@ -55,7 +57,6 @@ import org.thoughtcrime.securesms.mms.OutgoingExpirationUpdateMessage;
 import org.thoughtcrime.securesms.mms.OutgoingGroupMediaMessage;
 import org.thoughtcrime.securesms.mms.OutgoingMediaMessage;
 import org.thoughtcrime.securesms.mms.OutgoingSecureMediaMessage;
-import org.thoughtcrime.securesms.mms.PartAuthority;
 import org.thoughtcrime.securesms.mms.QuoteModel;
 import org.thoughtcrime.securesms.mms.SlideDeck;
 import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
@@ -69,7 +70,6 @@ import org.whispersystems.jobqueue.JobManager;
 import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -574,7 +574,7 @@ public class MmsDatabase extends MessagingDatabase {
         String                   quoteText        = cursor.getString(cursor.getColumnIndexOrThrow(QUOTE_BODY));
         List<Attachment>         quoteAttachments = Stream.of(associatedAttachments).filter(Attachment::isQuote).map(a -> (Attachment)a).toList();
 
-        List<Contact>            sharedContacts   = extractAndRemoveContacts(dbAttachments);
+        List<Contact>            sharedContacts   = getAndRemoveContacts(dbAttachments);
         List<Attachment>         attachments      = Stream.of(dbAttachments).map(a -> (Attachment)a).toList();
 
         Recipient  recipient = Recipient.from(context, Address.fromSerialized(address), false);
@@ -608,8 +608,22 @@ public class MmsDatabase extends MessagingDatabase {
     }
   }
 
-  private List<Contact> extractAndRemoveContacts(List<DatabaseAttachment> attachments) {
-    List<Contact>            contacts     = new LinkedList<>();
+  private List<Contact> getAndRemoveContacts(List<DatabaseAttachment> attachments) {
+    List<ContactRetriever> retrievers = getAndRemoveContactRetrievers(attachments);
+    List<Contact>           contacts   = new LinkedList<>();
+
+    for (ContactRetriever contactRetriever : retrievers) {
+      Contact contact = contactRetriever.getContact();
+      if (contact != null) {
+        contacts.add(contact);
+      }
+    }
+
+    return contacts;
+  }
+
+  private List<ContactRetriever> getAndRemoveContactRetrievers(List<DatabaseAttachment> attachments) {
+    List<ContactRetriever>  contacts     = new LinkedList<>();
     List<DatabaseAttachment> needToRemove = new LinkedList<>();
 
     for (DatabaseAttachment rootCandidate : attachments) {
@@ -623,14 +637,7 @@ public class MmsDatabase extends MessagingDatabase {
           }
         }
 
-        try (InputStream jsonStream = PartAuthority.getAttachmentStream(context, rootCandidate.getDataUri())) {
-          String json = Util.readFullyAsString(jsonStream);
-          contacts.add(Contact.fromJson(json, avatar));
-        } catch (IOException e) {
-          Log.w(TAG, "Failed to read the JSON blob for a contact off of disk.", e);
-        } catch (JSONException e) {
-          Log.w(TAG, "Failed to deserialize the JSON blob for a contact.", e);
-        }
+        contacts.add(new AttachmentContactRetriever(context, rootCandidate, avatar));
         needToRemove.add(rootCandidate);
       }
     }
@@ -737,8 +744,12 @@ public class MmsDatabase extends MessagingDatabase {
       return Optional.absent();
     }
 
-    // TODO: Fill contact correctly
-    long messageId = insertMediaMessage(retrieved.getBody(), retrieved.getAttachments(), quoteAttachments, Collections.emptyList(), contentValues, null);
+    long messageId = insertMediaMessage(retrieved.getBody(),
+                                        retrieved.getAttachments(),
+                                        quoteAttachments,
+                                        getLinkedAttachmentsForContacts(retrieved.getSharedContacts()),
+                                        contentValues,
+                                        null);
 
     if (!Types.isExpirationTimerUpdate(mailbox)) {
       DatabaseFactory.getThreadDatabase(context).incrementUnread(threadId, 1);
@@ -1169,7 +1180,8 @@ public class MmsDatabase extends MessagingDatabase {
                                                      message.getOutgoingQuote().getAuthor(),
                                                      message.getOutgoingQuote().getText(),
                                                      new SlideDeck(context, message.getOutgoingQuote().getAttachments())) :
-                                           null);
+                                           null,
+                                       Stream.of(message.getOutgoingContacts()).map(c -> (ContactRetriever) c).toList());
     }
   }
 
@@ -1265,14 +1277,16 @@ public class MmsDatabase extends MessagingDatabase {
       Recipient                 recipient       = getRecipientFor(address);
       List<IdentityKeyMismatch> mismatches      = getMismatchedIdentities(mismatchDocument);
       List<NetworkFailure>      networkFailures = getFailures(networkDocument);
-      SlideDeck                 slideDeck       = getSlideDeck(cursor);
+      List<DatabaseAttachment>  attachments     = getMessageAttachments();
+      List<ContactRetriever>    contacts        = getAndRemoveContactRetrievers(attachments);
+      SlideDeck                 slideDeck       = new SlideDeck(context, attachments);
       Quote                     quote           = getQuote(cursor);
 
       return new MediaMmsMessageRecord(context, id, recipient, recipient,
                                        addressDeviceId, dateSent, dateReceived, deliveryReceiptCount,
                                        threadId, body, slideDeck, partCount, box, mismatches,
                                        networkFailures, subscriptionId, expiresIn, expireStarted,
-                                       readReceiptCount, quote);
+                                       readReceiptCount, quote, contacts);
     }
 
     private Recipient getRecipientFor(String serialized) {
@@ -1311,10 +1325,9 @@ public class MmsDatabase extends MessagingDatabase {
       return new LinkedList<>();
     }
 
-    private SlideDeck getSlideDeck(@NonNull Cursor cursor) {
+    private List<DatabaseAttachment> getMessageAttachments() {
       List<DatabaseAttachment>   attachment         = DatabaseFactory.getAttachmentDatabase(context).getAttachment(cursor);
-      List<? extends Attachment> messageAttachmnets = Stream.of(attachment).filterNot(Attachment::isQuote).toList();
-      return new SlideDeck(context, messageAttachmnets);
+      return Stream.of(attachment).filterNot(Attachment::isQuote).toList();
     }
 
     private @Nullable Quote getQuote(@NonNull Cursor cursor) {
