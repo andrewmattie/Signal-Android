@@ -23,7 +23,13 @@ import java.util.List;
 
 class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.ContactFieldViewHolder>{
 
-  private final List<Field> fields = new ArrayList<>();
+  private final boolean     selectable;
+  private final List<Field> fields;
+
+  public ContactFieldAdapter(boolean selectable) {
+    this.selectable = selectable;
+    this.fields     = new ArrayList<>();
+  }
 
   @Override
   public ContactFieldViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -32,7 +38,7 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
 
   @Override
   public void onBindViewHolder(ContactFieldViewHolder holder, int position) {
-    holder.bind(fields.get(position));
+    holder.bind(fields.get(position), selectable);
   }
 
   @Override
@@ -45,9 +51,9 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
     return fields.size();
   }
 
-  void setFields(@NonNull Context     context,
-                 @NonNull List<Phone> phoneNumbers,
-                 @NonNull List<Email> emails,
+  void setFields(@NonNull Context             context,
+                 @NonNull List<Phone>         phoneNumbers,
+                 @NonNull List<Email>         emails,
                  @NonNull List<PostalAddress> postalAddresses)
   {
     fields.clear();
@@ -75,15 +81,21 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
       checkBox = itemView.findViewById(R.id.contact_field_checkbox);
     }
 
-    void bind(@NonNull Field field) {
+    void bind(@NonNull Field field, boolean selectable) {
       value.setMaxLines(field.maxLines);
       value.setText(field.value);
       label.setText(field.label);
       icon.setImageResource(field.iconResId);
 
-      checkBox.setOnCheckedChangeListener(null);
-      checkBox.setChecked(field.isSelected());
-      checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> field.setSelected(isChecked));
+      if (selectable) {
+        checkBox.setVisibility(View.VISIBLE);
+        checkBox.setOnCheckedChangeListener(null);
+        checkBox.setChecked(field.isSelected());
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> field.setSelected(isChecked));
+      } else {
+        checkBox.setVisibility(View.GONE);
+        checkBox.setOnCheckedChangeListener(null);
+      }
     }
 
     void recycle() {

@@ -3,11 +3,13 @@ package org.thoughtcrime.securesms.components;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -31,6 +33,8 @@ public class SharedContactView extends LinearLayout {
   private TextView  nameView;
   private TextView  numberView;
   private TextView  actionButton;
+
+  private AddToContactsClickedListener addToContactsClickedListener;
 
   public SharedContactView(Context context) {
     super(context);
@@ -85,6 +89,22 @@ public class SharedContactView extends LinearLayout {
     }
 
     actionButton.setText("Add to Contacts");
-    actionButton.setOnClickListener(v -> Log.w("SPIDERMAN", "IT HAS BEEN CLICKED"));
+    actionButton.setOnClickListener(v -> {
+      if (addToContactsClickedListener != null) {
+        addToContactsClickedListener.onAddToContactsClicked(contact);
+      }
+    });
+  }
+
+  public View getAvatarView() {
+    return avatarView;
+  }
+
+  public void setOnAddToContactsClickedListener(AddToContactsClickedListener listener) {
+    this.addToContactsClickedListener = listener;
+  }
+
+  public interface AddToContactsClickedListener {
+    void onAddToContactsClicked(@NonNull Contact contact);
   }
 }

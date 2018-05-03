@@ -57,7 +57,6 @@ import org.thoughtcrime.securesms.components.QuoteView;
 import org.thoughtcrime.securesms.components.SharedContactView;
 import org.thoughtcrime.securesms.components.ThumbnailView;
 import org.thoughtcrime.securesms.contactshare.RetrieveContactTask;
-import org.thoughtcrime.securesms.contactshare.model.Contact;
 import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.database.AttachmentDatabase;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
@@ -589,9 +588,35 @@ public class ConversationItem extends LinearLayout
       List<ContactRetriever> retrievers = ((MediaMmsMessageRecord) message).getSharedContacts();
 
       new RetrieveContactTask(retrievers.get(0), message, (contact, forMessage) -> {
-        if (messageRecord.getId() == forMessage.getId() && contact != null) {
-          sharedContactView.setContact(glideRequests, contact);
+        if (messageRecord.getId() != forMessage.getId()) {
+          Log.w(TAG, "Retrieved a contact for display, but the viewholder is now bound to a different message.");
+          return;
         }
+
+        if (contact == null) {
+          Log.w(TAG, "Failed to retrieve the contact.");
+          return;
+        }
+
+        sharedContactView.setContact(glideRequests, contact);
+
+        sharedContactView.setOnClickListener(view -> {
+          if (eventListener != null && batchSelected.isEmpty()) {
+            eventListener.onSharedContactDetailsClicked(contact, sharedContactView.getAvatarView());
+          } else {
+            passthroughClickListener.onClick(view);
+          }
+        });
+
+        sharedContactView.setOnAddToContactsClickedListener(clickedContact -> {
+          if (eventListener != null && batchSelected.isEmpty()) {
+            eventListener.onAddToContactsClicked(clickedContact);
+          } else {
+            passthroughClickListener.onClick(sharedContactView);
+          }
+        });
+
+        sharedContactView.setOnLongClickListener(passthroughClickListener);
       }).execute();
     } else {
       sharedContactView.setVisibility(GONE);

@@ -35,12 +35,12 @@ public class ContactShareEditActivity extends AppCompatActivity
 
     if (savedInstanceState == null) {
       if (getIntent() == null) {
-        throw new IllegalStateException("You must supply arguments to this fragment. Please use the #newInstance() method.");
+        throw new IllegalStateException("You must supply extras to this activity. Please use the #getIntent() method.");
       }
 
       ArrayList<Address> addresses = getIntent().getParcelableArrayListExtra(KEY_ADDRESSES);
       if (addresses == null) {
-        throw new IllegalStateException("You must supply addresses to this fragment. Please use the #newInstance() method.");
+        throw new IllegalStateException("You must supply addresses to this activity. Please use the #getIntent() method.");
       }
 
       ContactShareEditFragment fragment = ContactShareEditFragment.newInstance(addresses);

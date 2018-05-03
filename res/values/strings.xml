@@ -573,6 +573,9 @@
     <string name="RingtonePreference_add_ringtone_text">Add ringtone</string>
     <string name="RingtonePreference_unable_to_add_ringtone">Unable to add custom ringtone</string>
 
+    <!-- SharedContactDetailsActivity -->
+    <string name="SharedContactDetailsActivity_add_to_contacts">Add to Contacts</string>
+
     <!-- Slide -->
     <string name="Slide_image">Image</string>
     <string name="Slide_audio">Audio</string>

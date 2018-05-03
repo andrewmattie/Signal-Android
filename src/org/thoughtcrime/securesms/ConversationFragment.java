@@ -26,6 +26,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -52,6 +54,8 @@ import android.widget.Toast;
 
 import org.thoughtcrime.securesms.ConversationAdapter.HeaderViewHolder;
 import org.thoughtcrime.securesms.ConversationAdapter.ItemClickListener;
+import org.thoughtcrime.securesms.contactshare.SharedContactDetailsActivity;
+import org.thoughtcrime.securesms.contactshare.model.Contact;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MmsSmsDatabase;
 import org.thoughtcrime.securesms.database.RecipientDatabase;
@@ -639,6 +643,20 @@ public class ConversationFragment extends Fragment
           }
         }
       }.execute();
+    }
+
+    @Override
+    public void onSharedContactDetailsClicked(@NonNull Contact sharedContact, @NonNull View avatarTransitionView) {
+      Log.w(TAG, "Clicked on shared contact details.");
+      if (getContext() != null && getActivity() != null) {
+        Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity(), avatarTransitionView, "avatar").toBundle();
+        ActivityCompat.startActivity(getActivity(), SharedContactDetailsActivity.getIntent(getContext(), sharedContact), bundle);
+      }
+    }
+
+    @Override
+    public void onAddToContactsClicked(@NonNull Contact sharedContact) {
+      Log.w(TAG, "Clicked 'Add to Contacts'.");
     }
   }
 

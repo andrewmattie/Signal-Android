@@ -39,7 +39,7 @@ public class ContactShareEditFragment extends Fragment {
 
   private boolean                   photosUsed;
 
-  static ContactShareEditFragment newInstance(@NonNull ArrayList<Address> contactIds) {
+  public static ContactShareEditFragment newInstance(@NonNull ArrayList<Address> contactIds) {
     Bundle args = new Bundle();
     args.putParcelableArrayList(KEY_ADDRESSES, contactIds);
 

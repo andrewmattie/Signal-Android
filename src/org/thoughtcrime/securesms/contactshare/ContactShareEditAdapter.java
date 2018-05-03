@@ -66,9 +66,10 @@ public class ContactShareEditAdapter extends RecyclerView.Adapter<ContactShareEd
 
     ContactEditViewHolder(View itemView) {
       super(itemView);
-      avatar       = itemView.findViewById(R.id.editable_contact_avatar);
-      name         = itemView.findViewById(R.id.editable_contact_name);
-      fieldAdapter = new ContactFieldAdapter();
+
+      this.avatar       = itemView.findViewById(R.id.editable_contact_avatar);
+      this.name         = itemView.findViewById(R.id.editable_contact_name);
+      this.fieldAdapter = new ContactFieldAdapter(true);
 
       RecyclerView fields = itemView.findViewById(R.id.editable_contact_fields);
       fields.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
