@@ -97,7 +97,9 @@ import org.thoughtcrime.securesms.components.reminder.UnauthorizedReminder;
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactAccessor.ContactData;
 import org.thoughtcrime.securesms.contactshare.ContactShareEditActivity;
+import org.thoughtcrime.securesms.contactshare.RetrieveContactTask;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.crypto.IdentityKeyParcelable;
 import org.thoughtcrime.securesms.crypto.SecurityEvent;
 import org.thoughtcrime.securesms.database.Address;
@@ -124,6 +126,7 @@ import org.thoughtcrime.securesms.mms.AttachmentManager.MediaType;
 import org.thoughtcrime.securesms.mms.AudioSlide;
 import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.mms.GlideRequests;
+import org.thoughtcrime.securesms.mms.ImageSlide;
 import org.thoughtcrime.securesms.mms.LocationSlide;
 import org.thoughtcrime.securesms.mms.MediaConstraints;
 import org.thoughtcrime.securesms.mms.OutgoingExpirationUpdateMessage;
@@ -2115,11 +2118,36 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       author = messageRecord.getIndividualRecipient();
     }
 
-    inputPanel.setQuote(GlideApp.with(this),
-                        messageRecord.getDateSent(),
-                        author,
-                        messageRecord.getBody(),
-                        messageRecord.isMms() ? ((MmsMessageRecord)messageRecord).getSlideDeck() : new SlideDeck());
+    if (messageRecord.isMms() && ((MmsMessageRecord) messageRecord).getSharedContacts().size() > 0) {
+      new RetrieveContactTask(((MmsMessageRecord) messageRecord).getSharedContacts().get(0), messageRecord, ((contact, forMessage) -> {
+        if (contact == null) return;
+
+        SlideDeck slideDeck = new SlideDeck();
+        if (contact.getAvatar() != null) {
+          slideDeck.addSlide(new ImageSlide(getApplicationContext(), contact.getAvatar().getImage()));
+        }
+
+        StringBuilder body = new StringBuilder();
+        if (contact.getName().getDisplayName() != null) {
+          body.append(contact.getName().getDisplayName());
+        }
+        if (contact.getPhoneNumbers().size() > 0) {
+          body.append('\n').append(contact.getPhoneNumbers().get(0).getNumber());
+        }
+
+        inputPanel.setQuote(GlideApp.with(this),
+                            forMessage.getDateSent(),
+                            author,
+                            body.toString(),
+                            slideDeck);
+      })).execute();
+    } else {
+      inputPanel.setQuote(GlideApp.with(this),
+                          messageRecord.getDateSent(),
+                          author,
+                          messageRecord.getBody(),
+                          messageRecord.isMms() ? ((MmsMessageRecord) messageRecord).getSlideDeck() : new SlideDeck());
+    }
   }
 
   @Override

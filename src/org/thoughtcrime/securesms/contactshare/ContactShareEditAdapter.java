@@ -10,9 +10,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.components.AvatarImageView;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.mms.DecryptableStreamUriLoader;
+import org.thoughtcrime.securesms.mms.DecryptableStreamUriLoader.DecryptableUri;
 import org.thoughtcrime.securesms.mms.GlideRequests;
 import org.thoughtcrime.securesms.recipients.Recipient;
 
@@ -74,10 +78,17 @@ public class ContactShareEditAdapter extends RecyclerView.Adapter<ContactShareEd
 
     void bind(@NonNull Contact contact, @NonNull GlideRequests glideRequests) {
       Context   context   = itemView.getContext();
-//      Recipient recipient = Recipient.from(context, contact.getAvatar(), true);
-      if (contact.getAvatar() != null) {
-        // TODO: Set image
-//        avatar.setAvatar(glideRequests, recipient, false);
+      if (contact.getAvatar() != null && contact.getAvatar().getImage().getDataUri() != null) {
+        glideRequests.load(new DecryptableUri(contact.getAvatar().getImage().getDataUri()))
+                     .fallback(R.drawable.ic_contact_picture)
+                     .circleCrop()
+                     .diskCacheStrategy(DiskCacheStrategy.ALL)
+                     .into(avatar);
+      } else {
+        glideRequests.load(R.drawable.ic_contact_picture)
+            .circleCrop()
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .into(avatar);
       }
       name.setText(NameRenderer.getDisplayString(contact.getName()));
       fieldAdapter.setFields(context, contact.getPhoneNumbers(), contact.getEmails(), contact.getPostalAddresses());

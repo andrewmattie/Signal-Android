@@ -56,6 +56,7 @@ import org.thoughtcrime.securesms.components.ExpirationTimerView;
 import org.thoughtcrime.securesms.components.QuoteView;
 import org.thoughtcrime.securesms.components.SharedContactView;
 import org.thoughtcrime.securesms.components.ThumbnailView;
+import org.thoughtcrime.securesms.contactshare.RetrieveContactTask;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
 import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.database.AttachmentDatabase;
@@ -814,35 +815,5 @@ public class ConversationItem extends LinearLayout
       }
     });
     builder.show();
-  }
-
-  private static class RetrieveContactTask extends AsyncTask<Void, Void, Contact> {
-
-    private final ContactRetriever         retriever;
-    private final MessageRecord forMessage;
-    private final ContactRetrievedListener listener;
-
-    RetrieveContactTask(@NonNull ContactRetriever         retriever,
-                        @NonNull MessageRecord            forMessage,
-                        @NonNull ContactRetrievedListener listener)
-    {
-      this.retriever     = retriever;
-      this.forMessage    = forMessage;
-      this.listener      = listener;
-    }
-
-    @Override
-    protected Contact doInBackground(Void... voids) {
-      return retriever.getContact();
-    }
-
-    @Override
-    protected void onPostExecute(Contact contact) {
-      listener.onContactRetrieved(contact, forMessage);
-    }
-  }
-
-  private interface ContactRetrievedListener {
-    void onContactRetrieved(@Nullable Contact contact, @NonNull MessageRecord forMessage);
   }
 }
