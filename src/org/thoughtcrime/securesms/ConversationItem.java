@@ -22,7 +22,6 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.TypedArray;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
@@ -55,7 +54,10 @@ import org.thoughtcrime.securesms.components.DeliveryStatusView;
 import org.thoughtcrime.securesms.components.DocumentView;
 import org.thoughtcrime.securesms.components.ExpirationTimerView;
 import org.thoughtcrime.securesms.components.QuoteView;
+import org.thoughtcrime.securesms.components.SharedContactView;
 import org.thoughtcrime.securesms.components.ThumbnailView;
+import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.database.AttachmentDatabase;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MmsDatabase;
@@ -115,6 +117,7 @@ public class ConversationItem extends LinearLayout
 
   protected View             bodyBubble;
   private QuoteView          quoteView;
+  private SharedContactView  sharedContactView;
   private TextView           bodyText;
   private TextView           dateText;
   private TextView           simInfoText;
@@ -179,6 +182,7 @@ public class ConversationItem extends LinearLayout
     this.expirationTimer         =            findViewById(R.id.expiration_indicator);
     this.groupSenderHolder       =            findViewById(R.id.group_sender_holder);
     this.quoteView               =            findViewById(R.id.quote_view);
+    this.sharedContactView       =            findViewById(R.id.shared_contact_view);
 
     setOnClickListener(new ClickListener(null));
 
@@ -218,6 +222,7 @@ public class ConversationItem extends LinearLayout
     setSimInfo(messageRecord);
     setExpiration(messageRecord);
     setQuote(messageRecord);
+    setSharedContacts(messageRecord);
   }
 
   @Override
@@ -576,6 +581,22 @@ public class ConversationItem extends LinearLayout
     }
   }
 
+  private void setSharedContacts(@NonNull MessageRecord message) {
+    if (message.isMms() && !message.isMmsNotification() && ((MediaMmsMessageRecord) message).getSharedContacts().size() > 0) {
+      sharedContactView.setVisibility(VISIBLE);
+
+      List<ContactRetriever> retrievers = ((MediaMmsMessageRecord) message).getSharedContacts();
+
+      new RetrieveContactTask(retrievers.get(0), message, (contact, forMessage) -> {
+        if (messageRecord.getId() == forMessage.getId() && contact != null) {
+          sharedContactView.setContact(glideRequests, contact);
+        }
+      }).execute();
+    } else {
+      sharedContactView.setVisibility(GONE);
+    }
+  }
+
   private void setFailedStatusIcons() {
     alertView.setFailed();
     deliveryStatusIndicator.setNone();
@@ -795,4 +816,33 @@ public class ConversationItem extends LinearLayout
     builder.show();
   }
 
+  private static class RetrieveContactTask extends AsyncTask<Void, Void, Contact> {
+
+    private final ContactRetriever         retriever;
+    private final MessageRecord forMessage;
+    private final ContactRetrievedListener listener;
+
+    RetrieveContactTask(@NonNull ContactRetriever         retriever,
+                        @NonNull MessageRecord            forMessage,
+                        @NonNull ContactRetrievedListener listener)
+    {
+      this.retriever     = retriever;
+      this.forMessage    = forMessage;
+      this.listener      = listener;
+    }
+
+    @Override
+    protected Contact doInBackground(Void... voids) {
+      return retriever.getContact();
+    }
+
+    @Override
+    protected void onPostExecute(Contact contact) {
+      listener.onContactRetrieved(contact, forMessage);
+    }
+  }
+
+  private interface ContactRetrievedListener {
+    void onContactRetrieved(@Nullable Contact contact, @NonNull MessageRecord forMessage);
+  }
 }
