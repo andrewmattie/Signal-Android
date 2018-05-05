@@ -68,7 +68,7 @@ public class ContactShareEditFragment extends Fragment {
                                                                 Executors.newSingleThreadExecutor(),
                                                                 DatabaseFactory.getContactsDatabase(getContext()));
 
-    viewModel = ViewModelProviders.of(this, new ContactShareEditViewModel.Factory(addresses, contactRepository)).get(ContactShareEditViewModel.class);
+//    viewModel = ViewModelProviders.of(this, new ContactShareEditViewModel.Factory(addresses, contactRepository)).get(ContactShareEditViewModel.class);
   }
 
   @Override
@@ -84,7 +84,7 @@ public class ContactShareEditFragment extends Fragment {
   @Nullable
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-    return inflater.inflate(R.layout.fragment_contact_share_edit, container, false);
+    return inflater.inflate(R.layout.activity_contact_share_edit, container, false);
   }
 
   @Override

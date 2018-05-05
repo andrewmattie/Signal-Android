@@ -33,19 +33,22 @@
 
                 <org.thoughtcrime.securesms.components.emoji.EmojiTextView
                     android:id="@+id/contact_details_name"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:textSize="20sp"
                     tools:text="Peter Parker"/>
 
                 <TextView
                     android:id="@+id/contact_details_number"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="14dp"
+                    android:gravity="center"
                     tools:text="(610) 555-5555"/>
 
                 <Button
+                    android:id="@+id/contact_details_add_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"

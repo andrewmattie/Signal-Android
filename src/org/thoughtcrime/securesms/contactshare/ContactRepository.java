@@ -23,6 +23,7 @@ import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.MediaUtil;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -47,12 +48,11 @@ class ContactRepository {
     this.contactsDatabase = contactsDatabase;
   }
 
-  // TODO: Move from addresses to contactId as identifier?
-  void getContacts(@NonNull List<Address> addresses, @NonNull Callback callback) {
+  void getContacts(@NonNull List<Long> contactIds, @NonNull Callback callback) {
     executor.execute(() -> {
-      List<Contact> contacts = new ArrayList<>(addresses.size());
-      for (Address address : addresses) {
-        Contact contact = getContact(address);
+      List<Contact> contacts = new ArrayList<>(contactIds.size());
+      for (long id : contactIds) {
+        Contact contact = getContact(id);
         if (contact != null) {
           contacts.add(contact);
         }
@@ -62,29 +62,27 @@ class ContactRepository {
   }
 
   @WorkerThread
-  private @Nullable Contact getContact(@NonNull Address address) {
-    long contactId = contactsDatabase.getContactIdFromAddress(address);
-    if (contactId < 0) {
-      return null;
-    }
-
+  private @Nullable Contact getContact(long contactId) {
     Name name = getName(contactId);
     if (name == null) {
-      Log.w(TAG, "Found a lookup key, but couldn't find a name associated with it. Very strange.");
+      Log.w(TAG, "Couldn't find a name associated with the provided contact ID.");
       return null;
     }
 
+    List<Phone> phoneNumbers = getPhoneNumbers(contactId);
+
     return new Contact(name,
-                       getPhoneNumbers(contactId),
+                       phoneNumbers,
                        getEmails(contactId),
                        getPostalAddresses(contactId),
-                       getAvatar(address));
+                       getAvatar(contactId, phoneNumbers));
   }
 
   @WorkerThread
   private @Nullable Name getName(long contactId) {
     try (Cursor cursor = contactsDatabase.getNameDetails(contactId)) {
       if (cursor != null && cursor.moveToFirst()) {
+        // TODO: String constants pls
         return new Name(cursor.getString(0), cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getString(5));
       }
     }
@@ -146,21 +144,53 @@ class ContactRepository {
     return postalAddresses;
   }
 
-  private @Nullable ContactAvatar getAvatar(@NonNull Address address) {
+  private @Nullable ContactAvatar getAvatar(long contactId, List<Phone> phoneNumbers) {
+    ContactAvatar systemAvatar = getSystemAvatar(contactId);
+
+    if (systemAvatar != null) {
+      return systemAvatar;
+    }
+
+    for (Phone phoneNumber : phoneNumbers) {
+      ContactAvatar recipientAvatar = getRecipientAvatar(Address.fromExternal(context, phoneNumber.getNumber()));
+      if (recipientAvatar != null) {
+        return recipientAvatar;
+      }
+    }
+    return null;
+  }
+
+  private @Nullable ContactAvatar getSystemAvatar(long contactId) {
+    try {
+      InputStream avatarStream = context.getContentResolver().openInputStream(contactsDatabase.getAvatarUri(contactId));
+      if (avatarStream != null) {
+        return new ContactAvatar(storeContactPhoto(avatarStream), true);
+      }
+    } catch (IOException e) {
+      Log.w(TAG, "Failed to copy the avatar to persistent storage. Backing out.");
+    }
+    return null;
+  }
+
+  private @Nullable ContactAvatar getRecipientAvatar(@NonNull Address address) {
     Recipient    recipient    = Recipient.from(context, address, false);
     ContactPhoto contactPhoto = recipient.getContactPhoto();
 
     if (contactPhoto != null) {
       try {
-        Uri uri = PersistentBlobProvider.getInstance(context).create(context, contactPhoto.openInputStream(context), MediaUtil.IMAGE_JPEG, null, null);
-        return new ContactAvatar(uri, contactPhoto.isProfilePhoto());
+        InputStream avatarStream = contactPhoto.openInputStream(context);
+        return new ContactAvatar(storeContactPhoto(avatarStream), contactPhoto.isProfilePhoto());
       } catch (IOException e) {
-        Log.w(TAG, "Failed to write the photo to persistent storage. Backing out.");
-        e.printStackTrace();
+        Log.w(TAG, "Failed to copy the avatar to persistent storage. Backing out.");
       }
     }
     return null;
   }
+
+  private @NonNull Uri storeContactPhoto(@NonNull InputStream avatarStream) {
+    return PersistentBlobProvider.getInstance(context).create(context, avatarStream, MediaUtil.IMAGE_JPEG, null, null);
+  }
+
 
   private Phone.Type phoneTypeFromContactType(int type) {
     switch (type) {

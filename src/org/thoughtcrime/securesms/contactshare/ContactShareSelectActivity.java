@@ -26,11 +26,11 @@ public class ContactShareSelectActivity extends ContactSelectionActivity {
     contactsFragment.setOnContactSelectedListener(new ContactSelectionListFragment.OnContactSelectedListener() {
       @Override
       public void onContactSelected(String number) {
-        ArrayList<Address> addresses = new ArrayList<>();
-        addresses.add(Address.fromExternal(ContactShareSelectActivity.this, number));
-
-        Intent intent = ContactShareEditActivity.getIntent(ContactShareSelectActivity.this, addresses);
-        startActivityForResult(intent, REQUEST_CODE);
+//        ArrayList<Address> addresses = new ArrayList<>();
+//        addresses.add(Address.fromExternal(ContactShareSelectActivity.this, number));
+//
+//        Intent intent = ContactShareEditActivity.getIntent(ContactShareSelectActivity.this, addresses);
+//        startActivityForResult(intent, REQUEST_CODE);
       }
 
       @Override

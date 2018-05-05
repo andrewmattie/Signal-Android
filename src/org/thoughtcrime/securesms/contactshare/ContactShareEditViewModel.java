@@ -21,11 +21,11 @@ class ContactShareEditViewModel extends ViewModel {
 
   private final MutableLiveData<List<Contact>> contacts;
 
-  ContactShareEditViewModel(@NonNull List<Address> addresses,
+  ContactShareEditViewModel(@NonNull List<Long>        contactIds,
                             @NonNull ContactRepository contactRepository)
   {
     contacts = new MutableLiveData<>();
-    contactRepository.getContacts(addresses, contacts::postValue);
+    contactRepository.getContacts(contactIds, contacts::postValue);
   }
 
   @NonNull LiveData<List<Contact>> getContacts() {
@@ -59,17 +59,17 @@ class ContactShareEditViewModel extends ViewModel {
 
   static class Factory extends ViewModelProvider.NewInstanceFactory {
 
-    private final List<Address>     addresses;
+    private final List<Long>        contactIds;
     private final ContactRepository contactRepository;
 
-    Factory(@NonNull List<Address> addresses, @NonNull ContactRepository contactRepository) {
-      this.addresses         = addresses;
+    Factory(@NonNull List<Long> contactIds, @NonNull ContactRepository contactRepository) {
+      this.contactIds        = contactIds;
       this.contactRepository = contactRepository;
     }
 
     @Override
     public @NonNull <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-      return modelClass.cast(new ContactShareEditViewModel(addresses, contactRepository));
+      return modelClass.cast(new ContactShareEditViewModel(contactIds, contactRepository));
     }
   }
 }

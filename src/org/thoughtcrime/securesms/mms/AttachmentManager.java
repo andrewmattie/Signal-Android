@@ -27,6 +27,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
@@ -373,10 +374,7 @@ public class AttachmentManager {
                .ifNecessary()
                .withPermanentDenialDialog(activity.getString(R.string.AttachmentManager_signal_requires_contacts_permission_in_order_to_attach_contact_information))
                .onAllGranted(() -> {
-//                 Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-//                 activity.startActivityForResult(intent, requestCode);
-                 // TODO: We can only use new flow if they are sending to a signal user
-                 Intent intent = new Intent(activity, ContactShareSelectActivity.class);
+                 Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
                  activity.startActivityForResult(intent, requestCode);
                })
                .execute();

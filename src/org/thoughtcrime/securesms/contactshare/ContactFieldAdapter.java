@@ -173,10 +173,10 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
           label = context.getString(R.string.ContactShareEditFragment_type_work);
           break;
         case CUSTOM:
-          label = postalAddress.getLabel() != null ? postalAddress.getLabel() : "";
+          label = postalAddress.getLabel() != null ? postalAddress.getLabel() : context.getString(R.string.ContactShareEditFragment_type_missing);
           break;
         default:
-          label = "";
+          label = context.getString(R.string.ContactShareEditFragment_type_missing);
       }
     }
 

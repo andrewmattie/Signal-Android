@@ -97,9 +97,9 @@ import org.thoughtcrime.securesms.components.reminder.UnauthorizedReminder;
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactAccessor.ContactData;
 import org.thoughtcrime.securesms.contactshare.ContactShareEditActivity;
+import org.thoughtcrime.securesms.contactshare.ContactUtil;
 import org.thoughtcrime.securesms.contactshare.RetrieveContactTask;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
-import org.thoughtcrime.securesms.contactshare.model.ContactRetriever;
 import org.thoughtcrime.securesms.crypto.IdentityKeyParcelable;
 import org.thoughtcrime.securesms.crypto.SecurityEvent;
 import org.thoughtcrime.securesms.database.Address;
@@ -215,13 +215,14 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   private static final int PICK_GALLERY      = 1;
   private static final int PICK_DOCUMENT     = 2;
   private static final int PICK_AUDIO        = 3;
-  private static final int PICK_CONTACT_INFO = 4;
-  private static final int GROUP_EDIT        = 5;
-  private static final int TAKE_PHOTO        = 6;
-  private static final int ADD_CONTACT       = 7;
-  private static final int PICK_LOCATION     = 8;
-  private static final int PICK_GIF          = 9;
-  private static final int SMS_DEFAULT       = 10;
+  private static final int PICK_CONTACT      = 4;
+  private static final int GET_CONTACT_INFO  = 5;
+  private static final int GROUP_EDIT        = 6;
+  private static final int TAKE_PHOTO        = 7;
+  private static final int ADD_CONTACT       = 8;
+  private static final int PICK_LOCATION     = 9;
+  private static final int PICK_GIF          = 10;
+  private static final int SMS_DEFAULT       = 11;
 
   private   GlideRequests               glideRequests;
   protected ComposeText                 composeText;
@@ -425,10 +426,15 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     case PICK_AUDIO:
       setMedia(data.getData(), MediaType.AUDIO);
       break;
-    case PICK_CONTACT_INFO:
-      // TODO: Must still handle old behavior for SMS
-//      addAttachmentContactInfo(data.getData());
-      addAttachmentContactInfo(data.getParcelableArrayListExtra(ContactShareEditActivity.KEY_CONTACTS));
+    case PICK_CONTACT:
+      if (isSecureText && !isSmsForced()) {
+        openContactShareEditor(data.getData());
+      } else {
+        addAttachmentContactInfo(data.getData());
+      }
+      break;
+    case GET_CONTACT_INFO:
+      sendContactShareInfo(data.getParcelableArrayListExtra(ContactShareEditActivity.KEY_CONTACTS));
       break;
     case GROUP_EDIT:
       recipient = Recipient.from(this, data.getParcelableExtra(GroupCreateActivity.GROUP_ADDRESS_EXTRA), true);
@@ -1386,7 +1392,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     case AttachmentTypeSelector.ADD_SOUND:
       AttachmentManager.selectAudio(this, PICK_AUDIO); break;
     case AttachmentTypeSelector.ADD_CONTACT_INFO:
-      AttachmentManager.selectContactInfo(this, PICK_CONTACT_INFO); break;
+      AttachmentManager.selectContactInfo(this, PICK_CONTACT); break;
     case AttachmentTypeSelector.ADD_LOCATION:
       AttachmentManager.selectLocation(this, PICK_LOCATION); break;
     case AttachmentTypeSelector.TAKE_PHOTO:
@@ -1405,6 +1411,12 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     attachmentManager.setMedia(glideRequests, uri, mediaType, getCurrentMediaConstraints(), width, height);
   }
 
+  private void openContactShareEditor(Uri contactUri) {
+    long id = ContactUtil.getContactIdFromUri(contactUri);
+    Intent intent = ContactShareEditActivity.getIntent(this, Collections.singletonList(id));
+    startActivityForResult(intent, GET_CONTACT_INFO);
+  }
+
   private void addAttachmentContactInfo(Uri contactUri) {
     ContactAccessor contactDataList = ContactAccessor.getInstance();
     ContactData contactData = contactDataList.getContactData(this, contactUri);
@@ -1413,17 +1425,16 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     else if (contactData.numbers.size() > 1)  selectContactInfo(contactData);
   }
 
-  private void addAttachmentContactInfo(List<Contact> contacts) {
+  private void sendContactShareInfo(List<Contact> contacts) {
     Log.e("SPIDERMAN", "Got contacts: " + contacts);
     Log.e("SPIDERMAN", "Got contacts: " + contacts);
 
-    boolean    forceSms       = sendButton.isManualSelection() && sendButton.getSelectedTransport().isSms();
     int        subscriptionId = sendButton.getSelectedTransport().getSimSubscriptionId().or(-1);
     long       expiresIn      = recipient.getExpireMessages() * 1000L;
     boolean    initiating     = threadId == -1;
 
     // TODO: Listen to result?
-    sendMediaMessage(forceSms, "", new SlideDeck(), expiresIn, subscriptionId, initiating, contacts);
+    sendMediaMessage(isSmsForced(), "", new SlideDeck(), expiresIn, subscriptionId, initiating, contacts);
   }
 
   private void selectContactInfo(ContactData contactData) {
@@ -1593,6 +1604,10 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     return getRecipient() != null && getRecipient().isPushGroupRecipient();
   }
 
+  private boolean isSmsForced() {
+    return sendButton.isManualSelection() && sendButton.getSelectedTransport().isSms();
+  }
+
   protected Recipient getRecipient() {
     return this.recipient;
   }
@@ -1600,6 +1615,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   protected long getThreadId() {
     return this.threadId;
   }
+
 
   private String getMessage() throws InvalidMessageException {
     String rawText = composeText.getTextTrimmed();

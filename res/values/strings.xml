@@ -101,6 +101,7 @@
     <string name="ContactShareEditFragment_type_home">Home</string>
     <string name="ContactShareEditFragment_type_mobile">Mobile</string>
     <string name="ContactShareEditFragment_type_work">Work</string>
+    <string name="ContactShareEditFragment_type_missing">Other</string>
 
     <!-- ConversationItem -->
     <string name="ConversationItem_error_not_delivered">Not delivered</string>
