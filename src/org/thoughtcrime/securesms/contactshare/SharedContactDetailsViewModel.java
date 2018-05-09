@@ -6,52 +6,111 @@ import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.support.annotation.NonNull;
 
+import org.thoughtcrime.securesms.contactshare.ContactRepository.ContactInfo;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.Phone;
+import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.SingleLiveEvent;
+
+import java.util.LinkedList;
+import java.util.List;
 
 class SharedContactDetailsViewModel extends ViewModel {
 
-  private final ContactRepository repo;
+  private final ContactRepository                   repo;
+  private final SingleLiveEvent<Event>              event;
+  private final MutableLiveData<ContactViewDetails> contactDetails;
 
-  private final SingleLiveEvent<Event>          event;
-  private final MutableLiveData<ContactDetails> contactDetails;
+  private final List<Contact>                       tempContacts;
 
   SharedContactDetailsViewModel(@NonNull Contact contact, @NonNull ContactRepository repo) {
     this.repo           = repo;
     this.event          = new SingleLiveEvent<>();
     this.contactDetails = new MutableLiveData<>();
+    this.tempContacts   = new LinkedList<>();
 
-    this.contactDetails.postValue(new ContactDetails(contact, ContactState.NEW));
+    contactDetails.postValue(new ContactViewDetails(new ContactInfo(contact), ContactState.LOADING));
+
+    repo.getMatchingExistingContact(contact, contactInfo -> {
+      if (contactInfo != null) {
+        tempContacts.add(contactInfo.getContact());
+        contactDetails.postValue(new ContactViewDetails(contactInfo, ContactState.ADDED));
+      } else {
+        contactDetails.postValue(new ContactViewDetails(new ContactInfo(contact), ContactState.NEW));
+      }
+    });
   }
 
   LiveData<Event> getEvent() {
     return event;
   }
 
-  LiveData<ContactDetails> getContactDetails() {
+  LiveData<ContactViewDetails> getContactDetails() {
     return contactDetails;
   }
 
   void saveAsNewContact() {
-    event.postValue(Event.NEW_CONTACT_COMPLETE);
+    repo.saveAsNewContact(getContactOrThrow(), contactInfo -> {
+      if (contactInfo != null) {
+        tempContacts.add(contactInfo.getContact());
+        contactDetails.postValue(new ContactViewDetails(contactInfo, ContactState.ADDED));
+        event.postValue(Event.NEW_CONTACT_SUCCESS);
+      } else {
+        event.postValue(Event.NEW_CONTACT_ERROR);
+      }
+    });
   }
 
   void saveDetailsToExistingContact(long contactId) {
-    event.postValue(Event.EDIT_CONTACT_COMPLETE);
+    repo.saveDetailsToExistingContact(contactId, getContactOrThrow(), contactInfo -> {
+      if (contactInfo != null) {
+        tempContacts.add(contactInfo.getContact());
+        contactDetails.postValue(new ContactViewDetails(contactInfo, ContactState.ADDED));
+        event.postValue(Event.EDIT_CONTACT_SUCCESS);
+      } else {
+        event.postValue(Event.EDIT_CONTACT_ERROR);
+      }
+    });
   }
 
-  static class ContactDetails {
+  LiveData<Long> getThreadId(@NonNull Address address) {
+    SingleLiveEvent<Long> threadId = new SingleLiveEvent<>();
+    repo.getThreadId(address, threadId::postValue);
+    return threadId;
+  }
 
-    private final Contact      contact;
+  LiveData<Recipient> getResolvedRecipient(@NonNull Phone phoneNumber) {
+    SingleLiveEvent<Recipient> recipient = new SingleLiveEvent<>();
+    repo.getResolvedRecipient(phoneNumber, recipient::postValue);
+    return recipient;
+  }
+
+  private @NonNull Contact getContactOrThrow() {
+    ContactViewDetails contactDetails = this.contactDetails.getValue();
+    if (contactDetails == null) {
+      throw new IllegalStateException("No contact available. This should never happen.");
+    }
+    return contactDetails.getContactInfo().getContact();
+  }
+
+  @Override
+  protected void onCleared() {
+    repo.deleteContactImages(tempContacts);
+  }
+
+  static class ContactViewDetails {
+
+    private final ContactInfo  contactInfo;
     private final ContactState state;
 
-    ContactDetails(@NonNull Contact contact, @NonNull ContactState state) {
-      this.contact = contact;
-      this.state   = state;
+    ContactViewDetails(@NonNull ContactInfo contact, @NonNull ContactState state) {
+      this.contactInfo = contact;
+      this.state       = state;
     }
 
-    public @NonNull Contact getContact() {
-      return contact;
+    public @NonNull ContactInfo getContactInfo() {
+      return contactInfo;
     }
 
     public @NonNull ContactState getState() {
@@ -60,11 +119,14 @@ class SharedContactDetailsViewModel extends ViewModel {
   }
 
   enum ContactState {
-    NEW, SYSTEM_CONTACT, PUSH_CONTACT;
+    NEW, ADDED, LOADING
   }
 
   enum Event {
-    NEW_CONTACT_COMPLETE, EDIT_CONTACT_COMPLETE
+    NEW_CONTACT_SUCCESS,
+    NEW_CONTACT_ERROR,
+    EDIT_CONTACT_SUCCESS,
+    EDIT_CONTACT_ERROR
   }
 
   static class Factory extends ViewModelProvider.NewInstanceFactory {

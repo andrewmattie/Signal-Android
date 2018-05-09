@@ -19,6 +19,7 @@ package org.thoughtcrime.securesms.contacts;
 import android.accounts.Account;
 import android.annotation.SuppressLint;
 import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.OperationApplicationException;
@@ -227,14 +228,76 @@ public class ContactsDatabase {
 
   }
 
-  public @Nullable long getContactIdFromAddress(@NonNull Address address) {
-    Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address.serialize()));
-    try (Cursor cursor = context.getContentResolver().query(uri, new String[] { ContactsContract.Data.CONTACT_ID}, null, null, null)) {
+  public long queryForContactId(@NonNull String filter) {
+    String[] projection = new String[] { ContactsContract.Data.CONTACT_ID };
+    String   selection  = ContactsContract.CommonDataKinds.Phone.NUMBER + " = ?";
+    if (Build.VERSION.SDK_INT >= 16) {
+      selection +=  " OR " + ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER + " = ?";
+    }
+
+    try (Cursor cursor = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                                            projection,
+                                                            selection,
+                                                            new String[] { filter, filter },
+                                                            null))
+    {
+      if (cursor != null && cursor.moveToNext()) {
+        return cursor.getLong(0);
+      }
+    }
+
+    Uri uri = Uri.withAppendedPath(ContactsContract.CommonDataKinds.Phone.CONTENT_FILTER_URI, Uri.encode(filter));
+
+    try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
         return cursor.getLong(0);
       }
     }
+
     return -1;
+  }
+
+  public long getRawContactIdFromContactId(long contactId) {
+    String[] projection = new String[] { RawContacts._ID };
+    String   selection  = RawContacts.CONTACT_ID + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId) };
+
+    try (Cursor cursor = context.getContentResolver().query(RawContacts.CONTENT_URI,
+                                                            projection,
+                                                            selection,
+                                                            args,
+                                                            null))
+    {
+      if (cursor != null && cursor.moveToFirst()) {
+        return cursor.getLong(0);
+      }
+    }
+
+    return -1;
+  }
+
+  public long getContactIdFromRawContactId(long rawContactId) {
+    String[] projection = new String[] { RawContacts.CONTACT_ID };
+    String   selection  = RawContacts._ID + " = ?";
+    String[] args       = new String[] { String.valueOf(rawContactId) };
+
+    try (Cursor cursor = context.getContentResolver().query(RawContacts.CONTENT_URI,
+                                              projection,
+                                              selection,
+                                              args,
+                                              null))
+    {
+      if (cursor != null && cursor.moveToFirst()) {
+        return cursor.getLong(0);
+      }
+    }
+
+    return -1;
+  }
+
+  public boolean deleteContact(long rawContactId) {
+    Uri uri = Uri.withAppendedPath(ContactsContract.RawContacts.CONTENT_URI, String.valueOf(rawContactId));
+    return context.getContentResolver().delete(uri, null, null) > 0;
   }
 
   public @Nullable Cursor getNameDetails(long contactId) {
@@ -302,9 +365,23 @@ public class ContactsDatabase {
                                               null);
   }
 
-  public @NonNull Uri getAvatarUri(long contactId) {
-    Uri contactUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
-    return Uri.withAppendedPath(contactUri, ContactsContract.Contacts.Photo.DISPLAY_PHOTO);
+  public @Nullable Uri getAvatarUri(long contactId) {
+    String[] projection = new String[] { ContactsContract.CommonDataKinds.Photo.PHOTO_URI };
+    String   selection  = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
+    String[] args       = new String[] { String.valueOf(contactId), ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE };
+
+    try (Cursor cursor = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                                                            projection,
+                                                            selection,
+                                                            args,
+                                                            null))
+    {
+      if (cursor != null && cursor.moveToFirst()) {
+        return Uri.parse(cursor.getString(0));
+      }
+    }
+
+    return null;
   }
 
 

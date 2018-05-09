@@ -21,10 +21,14 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.contactshare.ContactUtil;
 import org.thoughtcrime.securesms.contactshare.model.Contact;
+import org.thoughtcrime.securesms.contactshare.model.Phone;
 import org.thoughtcrime.securesms.mms.DecryptableStreamUriLoader;
 import org.thoughtcrime.securesms.mms.DecryptableStreamUriLoader.DecryptableUri;
 import org.thoughtcrime.securesms.mms.GlideRequests;
+
+import java.util.Locale;
 
 public class SharedContactView extends LinearLayout {
 
@@ -82,12 +86,15 @@ public class SharedContactView extends LinearLayout {
 
     nameView.setText(contact.getName().getDisplayName());
 
-    if (contact.getPhoneNumbers().size() > 0) {
-      numberView.setText(contact.getPhoneNumbers().get(0).getNumber());
+    Phone displayNumber = ContactUtil.getDisplayNumber(contact);
+    if (displayNumber != null) {
+      // TODO: Use locale
+      numberView.setText(ContactUtil.getPrettyPhoneNumber(displayNumber, Locale.getDefault()));
     } else {
       numberView.setText("");
     }
 
+    // TODO: String
     actionButton.setText("Add to Contacts");
     actionButton.setOnClickListener(v -> {
       if (addToContactsClickedListener != null) {

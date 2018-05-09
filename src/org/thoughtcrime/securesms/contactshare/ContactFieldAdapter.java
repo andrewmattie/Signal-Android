@@ -20,6 +20,7 @@ import org.thoughtcrime.securesms.contactshare.model.Selectable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.ContactFieldViewHolder>{
 
@@ -112,7 +113,8 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
     final Selectable selectable;
 
     Field(@NonNull Context context, @NonNull Phone phoneNumber) {
-      this.value      = phoneNumber.getNumber();
+      // TODO: Pass in locale
+      this.value      = ContactUtil.getPrettyPhoneNumber(phoneNumber, Locale.getDefault());
       this.iconResId  = R.drawable.ic_call_white_24dp;
       this.maxLines   = 1;
       this.selectable = phoneNumber;
@@ -160,7 +162,7 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
     }
 
     Field(@NonNull Context context, @NonNull PostalAddress postalAddress) {
-      this.value      = getDisplayString(postalAddress);
+      this.value      = postalAddress.toString();
       this.iconResId  = R.drawable.ic_location_on_white_24dp;
       this.maxLines   = 3;
       this.selectable = postalAddress;
@@ -178,12 +180,6 @@ class ContactFieldAdapter extends RecyclerView.Adapter<ContactFieldAdapter.Conta
         default:
           label = context.getString(R.string.ContactShareEditFragment_type_missing);
       }
-    }
-
-    private String getDisplayString(@NonNull PostalAddress postalAddress) {
-      // TODO: Do formatting correctly (account for missing fields, research if local matters, etc)
-      return postalAddress.getStreet() + '\n' +
-          postalAddress.getCity() + ", " + postalAddress.getRegion() + " " + postalAddress.getCountry();
     }
 
     void setSelected(boolean selected) {

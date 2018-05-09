@@ -73,7 +73,8 @@ public class ContactShareEditActivity extends AppCompatActivity {
     // TODO: Unify executors in some class
     ContactRepository contactRepository = new ContactRepository(this,
                                                                 Executors.newSingleThreadExecutor(),
-                                                                DatabaseFactory.getContactsDatabase(this));
+                                                                DatabaseFactory.getContactsDatabase(this),
+                                                                DatabaseFactory.getThreadDatabase(this));
 
     viewModel = ViewModelProviders.of(this, new ContactShareEditViewModel.Factory(contactIds, contactRepository)).get(ContactShareEditViewModel.class);
     viewModel.getContacts().observe(this, contactAdapter::setContacts);

@@ -576,6 +576,8 @@
 
     <!-- SharedContactDetailsActivity -->
     <string name="SharedContactDetailsActivity_add_to_contacts">Add to Contacts</string>
+    <string name="SharedContactDetailsActivity_invite_to_signal">Invite to Signal</string>
+    <string name="SharedContactDetailsActivity_invite_message">Let\'s switch to Signal: %1$s</string>
 
     <!-- Slide -->
     <string name="Slide_image">Image</string>

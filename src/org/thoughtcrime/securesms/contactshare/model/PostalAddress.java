@@ -162,6 +162,41 @@ public class PostalAddress implements Selectable, Parcelable, Json {
     }
   };
 
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+
+    if (street != null) {
+      builder.append(street).append('\n');
+    }
+
+    if (poBox != null) {
+      builder.append(street).append('\n');
+    }
+
+    if (neighborhood != null) {
+      builder.append(neighborhood).append('\n');
+    }
+
+    if (city != null && region != null) {
+      builder.append(city).append(", ").append(region);
+    } else if (city != null) {
+      builder.append(city).append(' ');
+    } else if (region != null) {
+      builder.append(region).append(' ');
+    }
+
+    if (postalCode != null) {
+      builder.append(postalCode);
+    }
+
+    if (country != null) {
+      builder.append('\n').append(country);
+    }
+
+    return builder.toString().trim();
+  }
+
   public enum Type {
     HOME, WORK, CUSTOM
   }

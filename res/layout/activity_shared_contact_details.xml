@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -35,6 +36,7 @@
                     android:id="@+id/contact_details_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:transitionName="name"
                     android:gravity="center"
                     android:textSize="20sp"
                     tools:text="Peter Parker"/>
@@ -43,16 +45,96 @@
                     android:id="@+id/contact_details_number"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:transitionName="number"
                     android:layout_marginBottom="14dp"
                     android:gravity="center"
                     tools:text="(610) 555-5555"/>
 
-                <Button
-                    android:id="@+id/contact_details_add_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:text="@string/SharedContactDetailsActivity_add_to_contacts"/>
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <Button
+                        android:id="@+id/contact_details_add_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:layout_gravity="center"
+                        style="@style/Button.Primary"
+                        android:text="@string/SharedContactDetailsActivity_add_to_contacts"
+                        android:visibility="gone"
+                        tools:visibility="gone"/>
+
+                    <Button
+                        android:id="@+id/contact_details_invite_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:layout_gravity="center"
+                        style="@style/Button.Borderless"
+                        android:text="@string/SharedContactDetailsActivity_invite_to_signal"
+                        android:visibility="gone"
+                        tools:visibility="gone"/>
+
+                    <LinearLayout
+                        android:id="@+id/contact_details_engage_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:orientation="horizontal"
+                        style="?attr/buttonBarStyle"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <LinearLayout
+                            android:id="@+id/contact_details_message_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:tint="@color/signal_primary"
+                                android:src="@drawable/ic_message_white_24dp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Signal Message"
+                                android:textColor="@color/signal_primary"/>
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contact_details_call_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:tint="@color/signal_primary"
+                                android:src="@drawable/ic_call_secure_white_24dp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Signal Call"
+                                android:textColor="@color/signal_primary"/>
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </FrameLayout>
 
             </LinearLayout>
 

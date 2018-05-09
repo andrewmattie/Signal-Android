@@ -147,12 +147,12 @@ import org.thoughtcrime.securesms.recipients.RecipientFormattingException;
 import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.scribbles.ScribbleActivity;
 import org.thoughtcrime.securesms.service.KeyCachingService;
-import org.thoughtcrime.securesms.service.WebRtcCallService;
 import org.thoughtcrime.securesms.sms.MessageSender;
 import org.thoughtcrime.securesms.sms.OutgoingEncryptedMessage;
 import org.thoughtcrime.securesms.sms.OutgoingEndSessionMessage;
 import org.thoughtcrime.securesms.sms.OutgoingTextMessage;
 import org.thoughtcrime.securesms.util.CharacterCalculator.CharacterState;
+import org.thoughtcrime.securesms.util.CommunicationActions;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.DirectoryHelper;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
@@ -840,23 +840,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     if (recipient == null) return;
 
     if (isSecureText) {
-      Permissions.with(ConversationActivity.this)
-                 .request(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
-                 .ifNecessary()
-                 .withRationaleDialog(getString(R.string.ConversationActivity_to_call_s_signal_needs_access_to_your_microphone_and_camera, recipient.toShortString()),
-                                      R.drawable.ic_mic_white_48dp, R.drawable.ic_videocam_white_48dp)
-                 .withPermanentDenialDialog(getString(R.string.ConversationActivity_signal_needs_the_microphone_and_camera_permissions_in_order_to_call_s, recipient.toShortString()))
-                 .onAllGranted(() -> {
-                   Intent intent = new Intent(this, WebRtcCallService.class);
-                   intent.setAction(WebRtcCallService.ACTION_OUTGOING_CALL);
-                   intent.putExtra(WebRtcCallService.EXTRA_REMOTE_ADDRESS, recipient.getAddress());
-                   startService(intent);
-
-                   Intent activityIntent = new Intent(this, WebRtcCallActivity.class);
-                   activityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                   startActivity(activityIntent);
-                 })
-                 .execute();
+      CommunicationActions.startVoiceCall(this, recipient);
     } else {
       try {
         Intent dialIntent = new Intent(Intent.ACTION_DIAL,
